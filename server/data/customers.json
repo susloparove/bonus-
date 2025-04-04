@@ -1,0 +1,50 @@
+{
+  "79022620486": {
+    "name": "Иванов Петр",
+    "birth_date": "31.01.1969",
+    "balance": 650.0,
+    "role": "client"
+  },
+  "79022620487": {
+    "name": "Сидоров Иван",
+    "birth_date": "15.05.1985",
+    "balance": 300.0,
+    "role": "client"
+  },
+  "79022620488": {
+    "name": "Петров Федор",
+    "birth_date": "15122006",
+    "balance": 0,
+    "role": "client"
+  },
+  "79022620489": {
+    "name": "Матье Мари",
+    "birth_date": "15031950",
+    "balance": 0,
+    "role": "client"
+  },
+  "79022620485": {
+    "name": "Заря Марс",
+    "birth_date": "01011970",
+    "balance": 500.0,
+    "role": "client"
+  },
+  "79022620483": {
+    "name": "Заря Маша",
+    "birth_date": "02022002",
+    "balance": 1300.0,
+    "role": "client"
+  },
+  "79022620482": {
+    "name": "Mister Smith",
+    "birth_date": "05052005",
+    "balance": 300.0,
+    "role": "client"
+  },
+  "79090070684": {
+    "name": "Суслопарова Ираида",
+    "birth_date": "36071970",
+    "balance": 1000.0,
+    "role": "client"
+  }
+}

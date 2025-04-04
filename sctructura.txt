@@ -1,0 +1,20 @@
+project/
+├── server/                    # Серверная часть
+│   ├── main.py                # Главный файл FastAPI
+│   ├── auth.py                # Аутентификация и авторизация
+│   ├── customers.py           # Логика работы с клиентами
+│   ├── users.py               # Управление пользователями
+│   ├── transactions.py        # Логика транзакций
+│   ├── models.py              # Модели данных (Pydantic)
+│   ├── utils.py               # Вспомогательные функции
+│   └── data/                  # Данные (JSON-файлы)
+│       ├── customers.json
+│       ├── users.json
+│       └── transactions.json
+├── bot/                       # Telegram-бот
+│   ├── bot.py                 # Основной файл бота
+│   ├── handlers.py            # Обработчики команд
+│   ├── keyboards.py           # Клавиатуры
+│   └── utils.py               # Вспомогательные функции
+├── config.json                # Конфигурационный файл
+└── requirements.txt           # Зависимости

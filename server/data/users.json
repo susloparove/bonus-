@@ -1,0 +1,10 @@
+{
+  "Администратор": {
+    "password": "$2b$12$00Q2bh24ahf7yTLfpoumuuKGzinLKf350IGcPhUSr6Eu/B5YzCMQe",
+    "role": "admin"
+  },
+  "Продавцова Аня": {
+    "password": "$2b$12$JJzxXPnLjtDXtsHLXVDdk.UQC5lwGIv4hFyO94xX52LuD/UqFUg1O",
+    "role": "seller"
+  }
+}
