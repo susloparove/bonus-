@@ -1,12 +1,15 @@
+# bot/handlers.py
+
 import logging
+import bcrypt
 from telebot import types
 from bot.keyboards import (
     main_menu_keyboard, numeric_keyboard, password_keyboard, role_keyboard, seller_menu_keyboard
 )
-from bot.utils import (
-    add_customer, get_customer, add_bonus, deduct_bonus, list_customers
-)
-from server.users import authenticate_user, get_user_role
+from bot.utils import validate_phone, format_customer_info
+from server.customers import add_customer, get_customer, list_customers
+from server.transactions import add_bonus, deduct_bonus
+from server.users import authenticate_user_by_password, get_user_role, load_users  # Добавлен импорт load_users
 
 # Настройка логирования
 logging.basicConfig(
@@ -54,7 +57,7 @@ def setup_handlers(bot):
                 return
 
             try:
-                # Проверяем пароль через authenticate_user
+                # Проверяем пароль через authenticate_user_by_password
                 username = authenticate_user_by_password(password)
                 AUTHORIZED_USERS[chat_id] = username  # Сохраняем имя пользователя
                 role = get_user_role(username)  # Получаем роль пользователя
@@ -76,6 +79,10 @@ def setup_handlers(bot):
         else:
             user_password_input[chat_id] += action
             bot.answer_callback_query(call.id, "Символ добавлен.")
+
+    # Остальные обработчики...
+
+    # Остальные обработчики...
 
     @bot.message_handler(func=lambda message: message.text == "Добавить клиента")
     def handle_add_client(message):

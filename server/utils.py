@@ -1,96 +1,75 @@
-import requests
+# server/utils.py
+
 import json
 import os
-import logging
+from datetime import datetime
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
 
-# Базовый URL сервера
-BASE_URL = "http://localhost:8000"  # Убедитесь, что адрес правильный
-
-
-# Загрузка конфигурации
-def load_config():
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+def load_data(file_name: str) -> list:
+    """
+    Загружает данные из JSON-файла.
+    :param file_name: Имя файла (например, customers.json)
+    :return: Список данных
+    """
+    file_path = os.path.join(DATA_DIR, file_name)
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        if not os.path.exists(file_path):
+            return []
+        with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Файл конфигурации не найден: {config_path}")
-        raise SystemExit("Не удалось загрузить конфигурацию. Проверьте файл config.json.")
-    except json.JSONDecodeError:
-        logger.error(f"Ошибка декодирования JSON в файле конфигурации: {config_path}")
-        raise SystemExit("Некорректный формат файла config.json.")
+    except (FileNotFoundError, json.JSONDecodeError):
+        return []
 
+def save_data(file_name: str, data: list):
+    """
+    Сохраняет данные в JSON-файл.
+    :param file_name: Имя файла (например, customers.json)
+    :param data: Данные для сохранения
+    """
+    file_path = os.path.join(DATA_DIR, file_name)
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
-# Добавление нового клиента
-def add_customer(name, phone, birth_date, role="client"):
-    url = f"{BASE_URL}/customers/add"
-    payload = {
-        "phone": phone.strip(),
-        "name": name.strip(),
-        "birth_date": birth_date.strip(),
-        "role": role.strip()  # Добавляем роль
-    }
-    logger.info(f"Отправка POST-запроса к {url} с данными: {payload}")
-    response = requests.post(url, json=payload)
-    logger.info(f"Получен ответ: {response.status_code}, {response.text}")
-    if response.status_code != 200:
-        raise Exception(response.json().get("detail", "Ошибка при добавлении клиента."))
-    return response.json()
+def update_balance(phone: str, amount: float, transaction_type: str, operator: str):
+    """
+    Обновляет баланс клиента.
+    :param phone: Номер телефона клиента
+    :param amount: Сумма операции
+    :param transaction_type: Тип операции ("add" или "deduct")
+    :param operator: Имя оператора
+    :return: Сообщение об успешной операции
+    """
+    customers = load_data("customers.json")
+    for customer in customers:
+        if customer["phone"] == phone:
+            if transaction_type == "add":
+                customer["balance"] += amount
+            elif transaction_type == "deduct":
+                if customer["balance"] < amount:
+                    raise ValueError("Недостаточно средств на балансе.")
+                customer["balance"] -= amount
+            save_data("customers.json", customers)
+            return {"message": "Операция выполнена.", "balance": customer["balance"]}
+    raise ValueError("Клиент не найден.")
 
-
-# Получение информации о клиенте
-def get_customer(phone):
-    url = f"{BASE_URL}/customers/{phone.strip()}"
-    logger.info(f"Отправка GET-запроса к {url}")
-    response = requests.get(url)
-    logger.info(f"Получен ответ: {response.status_code}, {response.text}")
-
-    if response.status_code == 404:
-        raise Exception("Клиент не найден.")
-    elif response.status_code != 200:
-        raise Exception(response.json().get("detail", "Ошибка при получении данных клиента."))
-
-    data = response.json()
-    if "customer" not in data or "transactions" not in data:
-        raise Exception("Некорректный формат ответа сервера.")
-
-    return data
-
-
-# Пополнение баланса
-def add_bonus(phone, amount):
-    url = f"{BASE_URL}/transactions/add-bonus"
-    payload = {"phone": phone.strip(), "amount": float(amount)}
-    logger.info(f"Отправка POST-запроса к {url} с данными: {payload}")
-    response = requests.post(url, json=payload)
-    logger.info(f"Получен ответ: {response.status_code}, {response.text}")
-    if response.status_code != 200:
-        raise Exception(response.json().get("detail", "Ошибка при пополнении бонусов."))
-    return response.json()
-
-
-# Списание баланса
-def deduct_bonus(phone, amount):
-    url = f"{BASE_URL}/transactions/deduct-bonus"
-    payload = {"phone": phone.strip(), "amount": float(amount)}
-    logger.info(f"Отправка POST-запроса к {url} с данными: {payload}")
-    response = requests.post(url, json=payload)
-    logger.info(f"Получен ответ: {response.status_code}, {response.text}")
-    if response.status_code != 200:
-        raise Exception(response.json().get("detail", "Ошибка при списании бонусов."))
-    return response.json()
-
-
-# Получение списка клиентов
-def list_customers():
-    url = f"{BASE_URL}/customers"
-    logger.info(f"Отправка GET-запроса к {url}")
-    response = requests.get(url)
-    logger.info(f"Получен ответ: {response.status_code}, {response.text}")
-    if response.status_code != 200:
-        raise Exception(response.json().get("detail", "Ошибка при получении списка клиентов."))
-    return response.json().get("customers", [])
+def add_transaction(phone: str, transaction_type: str, amount: float, operator: str):
+    """
+    Добавляет транзакцию в файл transactions.json.
+    :param phone: Номер телефона клиента
+    :param transaction_type: Тип операции ("add" или "deduct")
+    :param amount: Сумма операции
+    :param operator: Имя оператора
+    """
+    transactions = load_data("transactions.json")
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    transactions.append({
+        "phone": phone,
+        "type": transaction_type,
+        "amount": amount,
+        "timestamp": timestamp,
+        "operator": operator
+    })
+    save_data("transactions.json", transactions)

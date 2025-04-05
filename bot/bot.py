@@ -1,3 +1,5 @@
+# bot/bot.py
+
 import json
 import logging
 import os
@@ -18,9 +20,9 @@ CONFIG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 try:
     with open(CONFIG_PATH, "r", encoding="utf-8") as f:
         config = json.load(f)
-        BOT_TOKEN = config.get("BOT_TOKEN")
+        BOT_TOKEN = config.get("telegram_bot_token")  # Используем правильное имя ключа
         if not BOT_TOKEN:
-            raise ValueError("BOT_TOKEN не найден в config.json.")
+            raise ValueError("telegram_bot_token не найден в config.json.")
 except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
     logger.error(f"Ошибка загрузки конфигурации: {e}")
     raise SystemExit("Ошибка загрузки конфигурации.")
