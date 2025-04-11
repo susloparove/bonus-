@@ -28,10 +28,10 @@ except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
     raise SystemExit("Ошибка загрузки конфигурации.")
 
 # Инициализация бота
-bot = TeleBot(BOT_TOKEN)
+tbot = TeleBot(BOT_TOKEN)
 
 # Настройка обработчиков
-setup_handlers(bot)
+setup_handlers(tbot)
 
 # Запуск бота
 if __name__ == "__main__":

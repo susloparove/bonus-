@@ -1,10 +1,12 @@
+
+from server.transactions import add_bonus, deduct_bonus
 from telebot import TeleBot, types
 from bot.keyboards import numeric_keyboard, main_menu_keyboard
 from bot.utils import validate_phone
 from bot.handlers.auth import AUTHORIZED_USERS, user_input, current_client_phone
-from server.customers import get_customer
-from server.transactions import add_bonus, deduct_bonus
 
+# Словарь для хранения текущей операции (пополнение или списание)
+current_operation = {}
 
 def register_transaction_handlers(tbot: TeleBot):
 
@@ -14,9 +16,15 @@ def register_transaction_handlers(tbot: TeleBot):
         if chat_id not in AUTHORIZED_USERS:
             tbot.send_message(chat_id, "Вы не авторизованы.")
             return
+
+        # Сохраняем текущую операцию
+        if message.text == "Пополнить":
+            current_operation[chat_id] = "add"
+        elif message.text == "Списать":
+            current_operation[chat_id] = "deduct"
+
         user_input[chat_id] = ""
-        tbot.send_message(chat_id, "Введите номер телефона клиента:",
-                          reply_markup=numeric_keyboard())
+        tbot.send_message(chat_id, "Введите номер телефона клиента:", reply_markup=numeric_keyboard())
 
     @tbot.callback_query_handler(func=lambda call: call.data.startswith("num_"))
     def handle_numeric_callback(call: types.CallbackQuery):
@@ -63,7 +71,6 @@ def register_transaction_handlers(tbot: TeleBot):
                     reply_markup=numeric_keyboard()
                 )
 
-
 def process_amount(message: types.Message, bot: TeleBot, phone: str):
     try:
         amount = float(message.text.replace(",", "."))
@@ -72,13 +79,17 @@ def process_amount(message: types.Message, bot: TeleBot, phone: str):
             bot.send_message(message.chat.id, "Вы не авторизованы.")
             return
 
-        if message.text.startswith("-"):
+        # Определяем тип операции из состояния
+        operation = current_operation.get(message.chat.id)
+        if operation == "deduct":
             # списание
-            deduct_bonus(phone, abs(amount), operator)
-            bot.send_message(message.chat.id, f"💸 Списано {abs(amount)}₽ с клиента {phone}.")
-        else:
+            deduct_bonus(phone, amount, operator)
+            bot.send_message(message.chat.id, f"💸 Списано {amount}₽ с клиента {phone}.")
+        elif operation == "add":
             # пополнение
             add_bonus(phone, amount, operator)
             bot.send_message(message.chat.id, f"💰 Зачислено {amount}₽ клиенту {phone}.")
+        else:
+            bot.send_message(message.chat.id, "❌ Ошибка: Неизвестная операция.")
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Ошибка при операции: {e}")

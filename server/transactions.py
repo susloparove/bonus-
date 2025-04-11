@@ -2,11 +2,23 @@ import json
 import os
 from datetime import datetime
 from server.utils import update_balance
+import logging
 
-# Определение абсолютного пути к файлам
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
+
+# Определение корневой директории проекта
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 TRANSACTIONS_FILE = os.path.join(DATA_DIR, "transactions.json")
+
+# Проверка существования папки data
+os.makedirs(DATA_DIR, exist_ok=True)
 
 # Загрузка транзакций
 def load_transactions():
@@ -22,10 +34,18 @@ def load_transactions():
 
 # Сохранение транзакций
 def save_transactions(transactions):
-    os.makedirs(DATA_DIR, exist_ok=True)
-    with open(TRANSACTIONS_FILE, "w", encoding="utf-8") as f:
-        json.dump(transactions, f, indent=2, ensure_ascii=False)
-
+    """
+    Сохраняет данные транзакций в файл transactions.json.
+    :param transactions: Список транзакций
+    """
+    print(f"Корневая директория: {BASE_DIR}")
+    print(f"Путь к файлу транзакций: {TRANSACTIONS_FILE}")
+    try:
+        with open(TRANSACTIONS_FILE, "w", encoding="utf-8") as f:
+            json.dump(transactions, f, indent=2, ensure_ascii=False)
+        print(f"Транзакция сохранена в файл: {TRANSACTIONS_FILE}")  # Отладочный вывод
+    except Exception as e:
+        print(f"Ошибка при сохранении файла: {e}")
 # Добавление транзакции
 def add_transaction(phone, transaction_type, amount, operator):
     transactions = load_transactions()
