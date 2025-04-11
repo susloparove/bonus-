@@ -1,22 +1,23 @@
 project/
-├── server/                    # Серверная часть
-│   ├── main.py                # Главный файл FastAPI
-│   ├── auth.py                # Аутентификация и авторизация
-│   ├── customers.py           # Логика работы с клиентами
-│   ├── users.py               # Управление пользователями
-│   ├── transactions.py        # Логика транзакций
-│   ├── models.py              # Модели данных (Pydantic)
-│   └── utils.py               # Вспомогательные функции
+├── bot/
+│   ├── main.py                  ← точка входа для бота
+│   ├── setup_handlers.py        ← регистрация всех обработчиков
+│   └── handlers/
+│       ├── __init__.py
+│       ├── auth.py              ← логин, пароль, меню
+│       ├── transaction.py       ← пополнение / списание
+│       └── menu.py              ← кнопки: Все клиенты, Закрыть клиента, Выход, Debug
 │
-├── bot/                       # Telegram-бот
-│   ├── bot.py                 # Основной файл бота
-│   ├── handlers.py            # Обработчики команд
-│   ├── keyboards.py           # Клавиатуры
-│   └── utils.py               # Вспомогательные функции
+├── server/
+│   ├── main.py                  ← FastAPI сервер
+│   ├── customers.py
+│   ├── transactions.py
+│   └── users.py
+│
 ├── data/
 │   ├── customers.json
-│   ├── users.json
-│   └── transactions.json
+│   ├── transactions.json
+│   └── users.json
 │
-├── config.json                # Конфигурационный файл
+├── config.json                  ← содержит telegram_bot_token
 └── requirements.txt           # Зависимости

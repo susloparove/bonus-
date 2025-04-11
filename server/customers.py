@@ -8,11 +8,11 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Определение абсолютного пути к файлам
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
-TRANSACTIONS_FILE = os.path.join(DATA_DIR, "transactions.json")
+# Определение пути к корневой директории
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Поднимаемся на уровень выше
+DATA_DIR = os.path.join(BASE_DIR, "data")  # Путь к папке data
+CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")  # Путь к файлу customers.json
+TRANSACTIONS_FILE = os.path.join(DATA_DIR, "transactions.json")  # Путь к файлу transactions.json
 
 # Загрузка данных клиентов
 def load_customers():
@@ -108,7 +108,7 @@ def add_transaction(phone, transaction_type, amount):
         "amount": amount,
         "timestamp": timestamp
     })
-    save_transactions(transactions)
+    # save_transactions(transactions)
 
 # Получение списка клиентов
 def list_customers():

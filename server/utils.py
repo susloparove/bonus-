@@ -33,6 +33,7 @@ def save_data(file_name: str, data: list):
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
+
 def update_balance(phone: str, amount: float, transaction_type: str, operator: str):
     """
     Обновляет баланс клиента.
@@ -40,21 +41,25 @@ def update_balance(phone: str, amount: float, transaction_type: str, operator: s
     :param amount: Сумма операции
     :param transaction_type: Тип операции ("add" или "deduct")
     :param operator: Имя оператора
-    :return: Сообщение об успешной операции
+    :return: Словарь с сообщением и новым балансом
     """
     customers = load_data("customers.json")
-    for customer in customers:
-        if customer["phone"] == phone:
-            if transaction_type == "add":
-                customer["balance"] += amount
-            elif transaction_type == "deduct":
-                if customer["balance"] < amount:
-                    raise ValueError("Недостаточно средств на балансе.")
-                customer["balance"] -= amount
-            save_data("customers.json", customers)
-            return {"message": "Операция выполнена.", "balance": customer["balance"]}
-    raise ValueError("Клиент не найден.")
 
+    if phone not in customers:
+        raise ValueError("Клиент не найден.")
+
+    customer = customers[phone]
+
+    if transaction_type == "add":
+        customer["balance"] += amount
+    elif transaction_type == "deduct":
+        if customer["balance"] < amount:
+            raise ValueError("Недостаточно средств на балансе.")
+        customer["balance"] -= amount
+
+    save_data("customers.json", customers)
+
+    return {"message": "Операция выполнена.", "balance": customer["balance"]}
 def add_transaction(phone: str, transaction_type: str, amount: float, operator: str):
     """
     Добавляет транзакцию в файл transactions.json.

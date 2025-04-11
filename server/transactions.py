@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from server.customers import update_balance
+from server.utils import update_balance
 
 # Определение абсолютного пути к файлам
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
