@@ -47,13 +47,24 @@ def save_transactions(transactions):
     except Exception as e:
         print(f"Ошибка при сохранении файла: {e}")
 # Добавление транзакции
-def add_transaction(phone, transaction_type, amount, operator):
+def add_transaction(phone: str, transaction_type: str, amount: float, operator: str):
+    """
+    Добавляет новую транзакцию.
+    :param phone: Номер телефона клиента
+    :param transaction_type: Тип операции ("add" или "deduct")
+    :param amount: Сумма операции
+    :param operator: Имя оператора
+    """
     transactions = load_transactions()
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Определяем знак суммы
+    signed_amount = amount if transaction_type == "add" else -abs(amount)
+
     transactions.append({
         "phone": phone,
         "type": transaction_type,
-        "amount": amount,
+        "amount": signed_amount,  # Сохраняем сумму с учётом знака
         "timestamp": timestamp,
         "operator": operator
     })

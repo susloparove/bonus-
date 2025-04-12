@@ -3,9 +3,7 @@ from bot.keyboards import numeric_keyboard, password_keyboard, main_menu_keyboar
 from server.customers import list_customers
 from bot.handlers.auth import AUTHORIZED_USERS, current_client_phone, user_input, show_main_menu
 
-
 def register_menu_handlers(tbot: TeleBot):
-
     @tbot.message_handler(func=lambda msg: msg.text == "Все клиенты")
     def handle_list_customers(message: types.Message):
         chat_id = message.chat.id

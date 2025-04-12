@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from fastapi import HTTPException
 import logging
+from .utils import load_data, save_data
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -87,16 +88,33 @@ def get_customer(phone: str):
     }
 
 # Обновление баланса клиента
-def update_balance(phone, amount, transaction_type):
-    customers = load_customers()
+def update_balance(phone: str, amount: float, transaction_type: str, operator: str):
+    """
+    Обновляет баланс клиента.
+    :param phone: Номер телефона клиента
+    :param amount: Сумма операции
+    :param transaction_type: Тип операции ("add" или "deduct")
+    :param operator: Имя оператора
+    :return: Словарь с сообщением и новым балансом
+    """
+    customers = load_data("customers.json")
+
     if phone not in customers:
-        raise HTTPException(status_code=404, detail="Клиент не найден.")
-    if transaction_type == "deduct" and customers[phone]["balance"] < abs(amount):
-        raise ValueError("Недостаточно средств.")
-    customers[phone]["balance"] += amount
-    save_customers(customers)
-    add_transaction(phone, transaction_type, amount)
-    return {"message": f"Баланс обновлен.", "balance": customers[phone]["balance"]}
+        raise ValueError("Клиент не найден.")
+
+    customer = customers[phone]
+
+    if transaction_type == "add":
+        customer["balance"] += amount
+    elif transaction_type == "deduct":
+        if customer["balance"] < amount:
+            raise ValueError("Недостаточно средств на балансе.")
+        customer["balance"] -= amount
+
+    save_data("customers.json", customers)
+
+    return {"message": "Операция выполнена.", "balance": customer["balance"]}
+
 
 # Добавление транзакции
 def add_transaction(phone, transaction_type, amount):
@@ -122,3 +140,36 @@ def list_customers():
 def load_transactions_for_customer(phone):
     transactions = load_transactions()
     return [t for t in transactions if t["phone"] == phone]
+
+def calculate_balance(phone: str) -> float:
+    """
+    Рассчитывает баланс клиента на основе транзакций.
+    :param phone: Номер телефона клиента
+    :return: Текущий баланс клиента
+    """
+    transactions = load_data(TRANSACTIONS_FILE)
+    balance = sum(t["amount"] for t in transactions if t["phone"] == phone)
+    return balance
+
+def get_customer_info(phone: str) -> dict:
+    """
+    Возвращает информацию о клиенте (имя и баланс).
+    :param phone: Номер телефона клиента
+    :return: Словарь с информацией о клиенте
+    """
+    customers = load_data("customers.json")
+    customer = next((c for c in customers if c["phone"] == phone), None)
+    if not customer:
+        raise ValueError("Клиент не найден.")
+
+    # Рассчитываем баланс из транзакций
+    balance = calculate_balance(phone)
+
+    # Обновляем баланс в файле customers.json
+    customer["balance"] = balance
+    save_data("customers.json", customers)
+
+    return {
+        "name": customer["name"],
+        "balance": balance
+    }

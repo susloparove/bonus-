@@ -1,7 +1,7 @@
 from telebot import TeleBot, types
 from bot.utils import validate_birth_date
 from .auth import user_data, clients
-
+from server.customers import get_customer_info
 
 def register_customer_handlers(tbot: TeleBot):
     @tbot.message_handler(commands=['add'])

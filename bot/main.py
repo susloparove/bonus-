@@ -3,8 +3,9 @@ import json
 import logging
 from telebot import TeleBot
 from bot.handlers.auth import register_auth_handlers
-# from bot.handlers.transaction import register_transaction_handlers
+from bot.handlers.transaction import register_transaction_handlers
 from bot.setup_handlers import setup_all_handlers
+from bot.handlers.menu import register_menu_handlers
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

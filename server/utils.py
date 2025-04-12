@@ -7,7 +7,7 @@ from datetime import datetime
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
-def load_data(file_name: str) -> list:
+def load_data(file_name: str) -> dict:  # было list — стало dict
     """
     Загружает данные из JSON-файла.
     :param file_name: Имя файла (например, customers.json)
@@ -22,7 +22,7 @@ def load_data(file_name: str) -> list:
     except (FileNotFoundError, json.JSONDecodeError):
         return []
 
-def save_data(file_name: str, data: list):
+def save_data(file_name: str, data: dict):  # если файл — словарь
     """
     Сохраняет данные в JSON-файл.
     :param file_name: Имя файла (например, customers.json)
