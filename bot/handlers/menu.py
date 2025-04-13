@@ -1,7 +1,8 @@
 from telebot import TeleBot, types
 from bot.keyboards import numeric_keyboard, password_keyboard, main_menu_keyboard
-from server.customers import list_customers
+from server.customers import list_customers, get_customer
 from bot.handlers.auth import AUTHORIZED_USERS, current_client_phone, user_input, show_main_menu
+from bot.handlers.auth import current_action  # добавь импорт
 
 def register_menu_handlers(tbot: TeleBot):
     @tbot.message_handler(func=lambda msg: msg.text == "Все клиенты")
@@ -23,6 +24,45 @@ def register_menu_handlers(tbot: TeleBot):
             tbot.send_message(chat_id, f"👥 Клиенты:\n\n{result}")
         except Exception as e:
             tbot.send_message(chat_id, f"❌ Ошибка: {e}")
+
+    def show_customer_info(chat_id, bot: TeleBot, phone: str):
+        try:
+            customer_info = get_customer(phone)
+            customer = customer_info["customer"]
+            transactions = customer_info["transactions"]
+
+            last_ops = "\n".join([
+                f"{'➕' if t['type'] == 'add' else '➖'} {abs(t['amount'])}₽ — {t['timestamp']}"
+                for t in transactions[-5:]
+            ]) or "Нет транзакций"
+
+            msg = (
+                f"👤 <b>{customer['name']}</b>\n"
+                f"📞 Телефон: <code>{phone}</code>\n"
+                f"🎂 Дата рождения: {customer['birth_date']}\n"
+                f"💰 Баланс: <b>{customer['balance']}₽</b>\n"
+                f"\n🧾 Последние транзакции:\n{last_ops}"
+            )
+            bot.send_message(chat_id, msg, parse_mode="HTML")
+        except Exception as e:
+            bot.send_message(chat_id, f"❌ Ошибка: {e}")
+
+    @tbot.message_handler(func=lambda msg: msg.text == "Инфо о клиенте")
+    def handle_customer_info(message: types.Message):
+        chat_id = message.chat.id
+
+        if chat_id not in AUTHORIZED_USERS:
+            tbot.send_message(chat_id, "Вы не авторизованы.")
+            return
+
+        phone = current_client_phone.get(chat_id)
+        if not phone:
+            current_action[chat_id] = "info"  # <== Важно!
+            tbot.send_message(chat_id, "Введите номер клиента:", reply_markup=numeric_keyboard())
+            user_input[chat_id] = ""
+            return
+
+        show_customer_info(chat_id, tbot, phone)  # используем отдельную функцию
 
     @tbot.message_handler(func=lambda msg: msg.text == "Закрыть клиента")
     def handle_close_client(message: types.Message):
@@ -55,3 +95,22 @@ def register_menu_handlers(tbot: TeleBot):
             f"⌨️ Ввод: <b>{current}</b>"
         )
         tbot.send_message(chat_id, debug_msg, parse_mode="HTML")
+
+    from bot.handlers.auth import current_action  # добавь импорт
+
+    @tbot.message_handler(func=lambda msg: msg.text == "Инфо о клиенте")
+    def handle_customer_info(message: types.Message):
+        chat_id = message.chat.id
+
+        if chat_id not in AUTHORIZED_USERS:
+            tbot.send_message(chat_id, "Вы не авторизованы.")
+            return
+
+        phone = current_client_phone.get(chat_id)
+        if not phone:
+            current_action[chat_id] = "info"  # <== Важно!
+            tbot.send_message(chat_id, "Введите номер клиента:", reply_markup=numeric_keyboard())
+            user_input[chat_id] = ""
+            return
+
+        show_customer_info(chat_id, tbot, phone)  # используем отдельную функцию

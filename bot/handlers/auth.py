@@ -13,7 +13,7 @@ user_input = {}
 user_data = {}
 clients = []
 current_client_phone = {}
-
+current_action = {}  # chat_id -> "add" | "deduct" | "info"
 def show_main_menu(chat_id: int, tbot: TeleBot):
     username = AUTHORIZED_USERS.get(chat_id)
     if not username:

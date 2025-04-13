@@ -43,7 +43,7 @@ def save_transactions(transactions):
     try:
         with open(TRANSACTIONS_FILE, "w", encoding="utf-8") as f:
             json.dump(transactions, f, indent=2, ensure_ascii=False)
-        print(f"Транзакция сохранена в файл: {TRANSACTIONS_FILE}")  # Отладочный вывод
+        # print(f"Транзакция сохранена в файл: {TRANSACTIONS_FILE}")  # Отладочный вывод
     except Exception as e:
         print(f"Ошибка при сохранении файла: {e}")
 # Добавление транзакции

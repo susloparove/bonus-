@@ -1,5 +1,5 @@
-
 from server.transactions import add_bonus, deduct_bonus
+from server.customers import get_customer_info
 from telebot import TeleBot, types
 from bot.keyboards import numeric_keyboard, main_menu_keyboard
 from bot.utils import validate_phone
@@ -54,15 +54,27 @@ def register_transaction_handlers(tbot: TeleBot):
             phone = user_input.pop(chat_id, "")
             if validate_phone(phone):
                 current_client_phone[chat_id] = phone
-                tbot.edit_message_text(
-                    f"Вы ввели номер: {phone}. Введите сумму:",
-                    chat_id,
-                    call.message.message_id
-                )
-                tbot.register_next_step_handler_by_chat_id(
-                    chat_id,
-                    lambda m: process_amount(m, tbot, phone)
-                )
+                try:
+                    customer = get_customer_info(phone)
+                    tbot.edit_message_text(
+                        f"Клиент выбран:\n"
+                        f"👤 Имя: {customer['name']}\n"
+                        f"📞 Телефон: {phone}\n"
+                        f"💰 Баланс: {customer['balance']}₽\n\n"
+                        f"Введите сумму:",
+                        chat_id,
+                        call.message.message_id
+                    )
+                    tbot.register_next_step_handler_by_chat_id(
+                        chat_id,
+                        lambda m: process_amount(m, tbot, phone)
+                    )
+                except Exception as e:
+                    tbot.edit_message_text(
+                        f"❌ Ошибка при получении клиента: {e}",
+                        chat_id,
+                        call.message.message_id
+                    )
             else:
                 tbot.edit_message_text(
                     "Некорректный номер телефона. Попробуйте снова.",
@@ -82,14 +94,21 @@ def process_amount(message: types.Message, bot: TeleBot, phone: str):
         # Определяем тип операции из состояния
         operation = current_operation.get(message.chat.id)
         if operation == "deduct":
-            # списание
             deduct_bonus(phone, amount, operator)
-            bot.send_message(message.chat.id, f"💸 Списано {amount}₽ с клиента {phone}.")
+            success_msg = f"💸 Списано {amount}₽ с клиента {phone}."
         elif operation == "add":
-            # пополнение
             add_bonus(phone, amount, operator)
-            bot.send_message(message.chat.id, f"💰 Зачислено {amount}₽ клиенту {phone}.")
+            success_msg = f"💰 Зачислено {amount}₽ клиенту {phone}."
         else:
             bot.send_message(message.chat.id, "❌ Ошибка: Неизвестная операция.")
+            return
+
+        # Получаем актуальную информацию
+        customer = get_customer_info(phone)
+        bot.send_message(message.chat.id, success_msg + "\n\n" +
+                         f"👤 Имя: {customer['name']}\n"
+                         f"📞 Телефон: {phone}\n"
+                         f"💰 Новый баланс: {customer['balance']}₽")
+
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Ошибка при операции: {e}")

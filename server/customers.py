@@ -9,167 +9,114 @@ from .utils import load_data, save_data
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Определение пути к корневой директории
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Поднимаемся на уровень выше
-DATA_DIR = os.path.join(BASE_DIR, "data")  # Путь к папке data
-CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")  # Путь к файлу customers.json
-TRANSACTIONS_FILE = os.path.join(DATA_DIR, "transactions.json")  # Путь к файлу transactions.json
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+CUSTOMERS_FILE = os.path.join(DATA_DIR, "customers.json")
+TRANSACTIONS_FILE = os.path.join(DATA_DIR, "transactions.json")
 
-# Загрузка данных клиентов
-def load_customers():
+
+def load_customers() -> dict:
+    if not os.path.exists(CUSTOMERS_FILE):
+        logger.warning(f"Файл не существует: {CUSTOMERS_FILE}")
+        return {}
     try:
-        if not os.path.exists(CUSTOMERS_FILE):
-            logger.warning(f"Файл не существует: {CUSTOMERS_FILE}")
-            return {}
         with open(CUSTOMERS_FILE, "r", encoding="utf-8") as f:
-            logger.info(f"Загрузка данных из файла: {CUSTOMERS_FILE}")
             return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Файл не найден: {CUSTOMERS_FILE}")
-        return {}
-    except json.JSONDecodeError:
-        logger.error(f"Ошибка декодирования JSON в файле: {CUSTOMERS_FILE}")
+    except Exception as e:
+        logger.error(f"Ошибка загрузки customers.json: {e}")
         return {}
 
-# Сохранение данных клиентов
-def save_customers(customers):
+
+def save_customers(customers: dict):
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(CUSTOMERS_FILE, "w", encoding="utf-8") as f:
         json.dump(customers, f, indent=2, ensure_ascii=False)
-        logger.info(f"Данные сохранены в файл: {CUSTOMERS_FILE}")
 
-# Загрузка транзакций
-def load_transactions():
-    try:
-        if not os.path.exists(TRANSACTIONS_FILE):
-            logger.warning(f"Файл транзакций не существует: {TRANSACTIONS_FILE}")
-            return []
-        with open(TRANSACTIONS_FILE, "r", encoding="utf-8") as f:
-            logger.info(f"Загрузка данных из файла: {TRANSACTIONS_FILE}")
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"Файл транзакций не найден: {TRANSACTIONS_FILE}")
-        return []
-    except json.JSONDecodeError:
-        logger.error(f"Ошибка декодирования JSON в файле: {TRANSACTIONS_FILE}")
-        return []
 
-# Добавление нового клиента
-def add_customer(phone, name, birth_date, role="client"):
-    """
-    Добавляет нового клиента с ролью.
-    :param phone: Номер телефона клиента
-    :param name: ФИО клиента
-    :param birth_date: Дата рождения клиента
-    :param role: Роль клиента ('client' или 'user')
-    :return: Сообщение об успешном добавлении
-    """
+def add_customer(phone: str, name: str, birth_date: str, role="client"):
     customers = load_customers()
     if phone in customers:
         raise ValueError("Клиент уже существует.")
     customers[phone] = {
         "name": name,
         "birth_date": birth_date,
-        "balance": 0,
-        "role": role  # Добавляем роль
+        "balance": 0.0,
+        "role": role
     }
     save_customers(customers)
     return {"message": "Клиент добавлен."}
 
-# Получение информации о клиенте
-def get_customer(phone: str):
-    customers = load_customers()
-    if phone not in customers:
-        raise HTTPException(status_code=404, detail="Клиент не найден.")
-    transactions = load_transactions_for_customer(phone)
-    return {
-        "customer": customers[phone],
-        "transactions": transactions
-    }
 
-# Обновление баланса клиента
 def update_balance(phone: str, amount: float, transaction_type: str, operator: str):
-    """
-    Обновляет баланс клиента.
-    :param phone: Номер телефона клиента
-    :param amount: Сумма операции
-    :param transaction_type: Тип операции ("add" или "deduct")
-    :param operator: Имя оператора
-    :return: Словарь с сообщением и новым балансом
-    """
-    customers = load_data("customers.json")
-
+    customers = load_customers()
     if phone not in customers:
         raise ValueError("Клиент не найден.")
 
     customer = customers[phone]
-
     if transaction_type == "add":
         customer["balance"] += amount
     elif transaction_type == "deduct":
         if customer["balance"] < amount:
-            raise ValueError("Недостаточно средств на балансе.")
+            raise ValueError("Недостаточно средств.")
         customer["balance"] -= amount
+    else:
+        raise ValueError("Неверный тип транзакции.")
 
-    save_data("customers.json", customers)
-
+    save_customers(customers)
     return {"message": "Операция выполнена.", "balance": customer["balance"]}
 
 
-# Добавление транзакции
-def add_transaction(phone, transaction_type, amount):
-    transactions = load_transactions()
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    transactions.append({
-        "phone": phone,
-        "type": transaction_type,
-        "amount": amount,
-        "timestamp": timestamp
-    })
-    # save_transactions(transactions)
-
-# Получение списка клиентов
 def list_customers():
     customers = load_customers()
-    return {"customers": [
-        f"Телефон: {phone}, ФИО: {data['name']}, Роль: {data['role']}"  # Добавляем роль
-        for phone, data in customers.items()
-    ]}
+    result = []
+    for phone, data in customers.items():
+        result.append(f"📞 {phone} | 👤 {data['name']} | 💼 Роль: {data.get('role', '-')}")
+    return {"customers": result}
 
-# Загрузка транзакций для конкретного клиента
-def load_transactions_for_customer(phone):
-    transactions = load_transactions()
-    return [t for t in transactions if t["phone"] == phone]
+
+def get_customer(phone: str):
+    customers = load_customers()
+    if phone not in customers:
+        raise HTTPException(status_code=404, detail="Клиент не найден.")
+    return customers[phone]
+
+
+def load_transactions() -> list:
+    if not os.path.exists(TRANSACTIONS_FILE):
+        return []
+    try:
+        with open(TRANSACTIONS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Ошибка загрузки transactions.json: {e}")
+        return []
+
+
+def save_transactions(transactions: list):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(TRANSACTIONS_FILE, "w", encoding="utf-8") as f:
+        json.dump(transactions, f, indent=2, ensure_ascii=False)
+
+
+def load_transactions_for_customer(phone: str) -> list:
+    return [t for t in load_transactions() if t["phone"] == phone]
+
 
 def calculate_balance(phone: str) -> float:
-    """
-    Рассчитывает баланс клиента на основе транзакций.
-    :param phone: Номер телефона клиента
-    :return: Текущий баланс клиента
-    """
-    transactions = load_data(TRANSACTIONS_FILE)
-    balance = sum(t["amount"] for t in transactions if t["phone"] == phone)
-    return balance
+    return sum(t["amount"] for t in load_transactions() if t["phone"] == phone)
+
 
 def get_customer_info(phone: str) -> dict:
-    """
-    Возвращает информацию о клиенте (имя и баланс).
-    :param phone: Номер телефона клиента
-    :return: Словарь с информацией о клиенте
-    """
-    customers = load_data("customers.json")
-    customer = next((c for c in customers if c["phone"] == phone), None)
-    if not customer:
+    customers = load_customers()
+    if phone not in customers:
         raise ValueError("Клиент не найден.")
 
-    # Рассчитываем баланс из транзакций
+    customer = customers[phone]
     balance = calculate_balance(phone)
-
-    # Обновляем баланс в файле customers.json
     customer["balance"] = balance
-    save_data("customers.json", customers)
+    save_customers(customers)
 
     return {
         "name": customer["name"],
-        "balance": balance
+        "balance": round(balance, 2)
     }
