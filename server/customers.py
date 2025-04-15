@@ -70,8 +70,10 @@ def list_customers():
     customers = load_customers()
     result = []
     for phone, data in customers.items():
-        result.append(f"📞 {phone} | 👤 {data['name']} | 💼 Роль: {data.get('role', '-')}")
+        balance = data.get("balance", 0)
+        result.append(f"{phone} |{data['name']} |Баланс: {balance}₿")
     return {"customers": result}
+
 
 
 def get_customer(phone: str):

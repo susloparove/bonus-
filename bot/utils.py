@@ -22,7 +22,7 @@ def format_customer_info(customer_info: dict, phone: str) -> str:
         f"📞 Телефон: {phone}",
         f"👤 Имя: {customer.get('name', '-')}",
         f"🎂 Дата рождения: {customer.get('birth_date', '-')}",
-        f"💰 Баланс: {customer.get('balance', 0)}₽",
+        f"💰 Баланс: {customer.get('balance', 0)}₿",
         "",
         "📜 Транзакции:"
     ]
@@ -31,7 +31,7 @@ def format_customer_info(customer_info: dict, phone: str) -> str:
         lines.append("Нет транзакций.")
     else:
         for t in transactions[-5:]:
-            lines.append(f"{t['timestamp']}: {t['type']} {t['amount']}₽")
+            lines.append(f"{t['timestamp']}: {t['type']} {t['amount']}₿")
 
     return "\n".join(lines)
 

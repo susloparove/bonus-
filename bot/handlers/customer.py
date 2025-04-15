@@ -1,9 +1,11 @@
 from telebot import TeleBot, types
 from bot.utils import validate_birth_date
-from .auth import user_data
+from .auth import user_data, current_client_phone  # добавили current_client_phone
 from server.customers import get_customer_info, add_customer, list_customers
 
 def register_customer_handlers(tbot: TeleBot):
+
+    @tbot.message_handler(func=lambda msg: msg.text == "Добавить клиента")
     @tbot.message_handler(commands=['add'])
     def handle_add_customer(message: types.Message):
         tbot.send_message(message.chat.id, "Введите имя клиента:")
@@ -22,7 +24,7 @@ def register_customer_handlers(tbot: TeleBot):
     def process_birth_date(message: types.Message, tbot: TeleBot):
         birth_date = message.text.strip()
         if not validate_birth_date(birth_date):
-            tbot.send_message(message.chat.id, "Неверный формат даты. Попробуйте снова:")
+            tbot.send_message(message.chat.id, "❌ Неверный формат даты. Попробуйте снова:")
             tbot.register_next_step_handler(message, lambda m: process_birth_date(m, tbot))
             return
 
@@ -31,13 +33,21 @@ def register_customer_handlers(tbot: TeleBot):
         name = data["name"]
 
         try:
-            # Добавляем клиента через серверную функцию
+            # ✅ Добавляем клиента
             add_customer(phone, name, birth_date)
+
+            # ✅ Устанавливаем текущего клиента
+            current_client_phone[message.chat.id] = phone
+
             # Получаем актуальную информацию
             info = get_customer_info(phone)
             tbot.send_message(
                 message.chat.id,
-                f"Клиент добавлен ✅\n👤 {info['name']}\n📞 {phone}\n💰 Баланс: {info['balance']}₽"
+                f"Клиент добавлен ✅\n"
+                f"👤 {info['name']}\n"
+                f"📞 {phone}\n"
+                f"💰 Баланс: {info['balance']}₽\n\n"
+                f"✅ Вы работаете с этим клиентом."
             )
         except Exception as e:
             tbot.send_message(message.chat.id, f"❌ Ошибка при добавлении клиента: {e}")
@@ -53,7 +63,7 @@ def register_customer_handlers(tbot: TeleBot):
             response = "\n".join(result["customers"])
             tbot.send_message(message.chat.id, f"📋 Клиенты:\n{response}")
         except Exception as e:
-            tbot.send_message(message.chat.id, f"Ошибка при получении клиентов: {e}")
+            tbot.send_message(message.chat.id, f"❌ Ошибка при получении списка: {e}")
 
     @tbot.message_handler(commands=['find'])
     def handle_find_customer(message: types.Message):

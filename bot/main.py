@@ -4,7 +4,6 @@ import logging
 from telebot import TeleBot
 from bot.setup_handlers import setup_all_handlers
 
-
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -24,11 +23,10 @@ except Exception as e:
 # Инициализация бота
 tbot = TeleBot(BOT_TOKEN)
 
-# Точка входа
 if __name__ == "__main__":
-    logging.info("Запуск бота...")
+    logging.info("✅ Запуск Telegram-бота...")
     setup_all_handlers(tbot)
     try:
         tbot.polling(none_stop=True, interval=0, timeout=20)
     except Exception as e:
-        logging.error(f"Ошибка при запуске бота: {e}")
+        logging.error(f"❌ Ошибка при запуске бота: {e}")
