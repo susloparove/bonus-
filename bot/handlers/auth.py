@@ -63,7 +63,7 @@ def register_auth_handlers(tbot: TeleBot):
                 username = authenticate_user_by_password(password)
                 AUTHORIZED_USERS[chat_id] = username
                 role = get_user_role(username)
-                tbot.edit_message_text(f"Авторизация успешна! Ваша роль: {role}",
+                tbot.edit_message_text(f"Авторизация успешна, {username} ! Ваша роль: {role}",
                                        chat_id, call.message.message_id)
                 show_main_menu(chat_id, tbot)
             except ValueError:

@@ -2,10 +2,8 @@ import os
 import json
 import logging
 from telebot import TeleBot
-from bot.handlers.auth import register_auth_handlers
-from bot.handlers.transaction import register_transaction_handlers
 from bot.setup_handlers import setup_all_handlers
-from bot.handlers.menu import register_menu_handlers
+
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -25,12 +23,6 @@ except Exception as e:
 
 # Инициализация бота
 tbot = TeleBot(BOT_TOKEN)
-
-# Регистрация всех обработчиков
-def setup_handlers():
-    register_auth_handlers(tbot)
-    register_transaction_handlers(tbot)
-    register_menu_handlers(tbot)
 
 # Точка входа
 if __name__ == "__main__":

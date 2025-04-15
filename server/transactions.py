@@ -38,8 +38,8 @@ def save_transactions(transactions):
     Сохраняет данные транзакций в файл transactions.json.
     :param transactions: Список транзакций
     """
-    print(f"Корневая директория: {BASE_DIR}")
-    print(f"Путь к файлу транзакций: {TRANSACTIONS_FILE}")
+    # print(f"Корневая директория: {BASE_DIR}")
+    # print(f"Путь к файлу транзакций: {TRANSACTIONS_FILE}")
     try:
         with open(TRANSACTIONS_FILE, "w", encoding="utf-8") as f:
             json.dump(transactions, f, indent=2, ensure_ascii=False)

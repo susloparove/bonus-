@@ -78,7 +78,13 @@ def get_customer(phone: str):
     customers = load_customers()
     if phone not in customers:
         raise HTTPException(status_code=404, detail="Клиент не найден.")
-    return customers[phone]
+
+    transactions = load_transactions_for_customer(phone)
+
+    return {
+        "customer": customers[phone],
+        "transactions": transactions
+    }
 
 
 def load_transactions() -> list:
