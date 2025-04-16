@@ -35,4 +35,16 @@ def format_customer_info(customer_info: dict, phone: str) -> str:
 
     return "\n".join(lines)
 
+import qrcode
+from io import BytesIO
+
+def generate_deep_link(phone: str) -> str:
+    return f"https://t.me/Tg_Chat1969_Bot?start={phone}"
+
+def generate_qr_image(link: str) -> BytesIO:
+    img = qrcode.make(link)
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer
 

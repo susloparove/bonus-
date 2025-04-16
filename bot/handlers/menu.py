@@ -41,6 +41,21 @@ def register_menu_handlers(tbot: TeleBot):
 
         show_customer_info(chat_id, tbot, phone)
 
+    @tbot.message_handler(func=lambda msg: msg.text == "Поделиться с клиентом")
+    def handle_share_client_link(message: types.Message):
+        chat_id = message.chat.id
+        phone = current_client_phone.get(chat_id)
+        if not phone:
+            tbot.send_message(chat_id, "❌ Сначала выберите клиента.")
+            return
+
+        from bot.utils import generate_deep_link, generate_qr_image
+
+        link = generate_deep_link(phone)
+        qr = generate_qr_image(link)
+
+        tbot.send_photo(chat_id, photo=qr, caption=f"🔗 Ссылка для клиента:\n{link}")
+
     @tbot.message_handler(func=lambda msg: msg.text == "Сменить клиента")
     def handle_change_client(message: types.Message):
         chat_id = message.chat.id
