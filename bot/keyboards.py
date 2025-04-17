@@ -55,7 +55,7 @@ def main_menu_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("Добавить клиента", "Инфо о клиенте", "Поделиться")
     markup.row("Пополнить", "Списать", "Все клиенты")
-    markup.row("Сменить клиента", "Выход")
+    markup.row("Редактировать клиента", "Сменить клиента", "Выход")
     markup.row()
     return markup
 

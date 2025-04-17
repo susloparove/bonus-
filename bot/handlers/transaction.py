@@ -95,10 +95,10 @@ def process_amount(message: types.Message, tbot: TeleBot, phone: str):
         operation = current_action.get(message.chat.id)
         if operation == "deduct":
             deduct_bonus(phone, amount, operator)
-            success_msg = f"💸 Списано {amount}₽ с клиента {phone}."
+            success_msg = f"💸 Списано {amount}₿ с клиента {phone}."
         elif operation == "add":
             add_bonus(phone, amount, operator)
-            success_msg = f"💰 Зачислено {amount}₽ клиенту {phone}."
+            success_msg = f"💰 Зачислено {amount}₿ клиенту {phone}."
         else:
             tbot.send_message(message.chat.id, "❌ Неизвестная операция.")
             return
@@ -109,7 +109,7 @@ def process_amount(message: types.Message, tbot: TeleBot, phone: str):
             success_msg + "\n\n" +
             f"👤 Имя: {customer['name']}\n"
             f"📞 Телефон: {phone}\n"
-            f"💰 Новый баланс: {customer['balance']}₽"
+            f"💰 Новый баланс: {customer['balance']}₿"
         )
 
     except Exception as e:

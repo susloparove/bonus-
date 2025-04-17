@@ -4,6 +4,46 @@ from bot.keyboards import numeric_keyboard, password_keyboard, main_menu_keyboar
 from bot.handlers.auth import AUTHORIZED_USERS, current_client_phone, user_input, current_action, show_main_menu
 
 
+def process_edit_choice(message: types.Message, tbot: TeleBot, phone: str):
+    choice = message.text.strip().lower()
+
+    if choice in ["1", "имя"]:
+        tbot.send_message(message.chat.id, "Введите новое имя клиента:")
+        tbot.register_next_step_handler(message, lambda m: update_customer_field(m, tbot, phone, "name"))
+    elif choice in ["2", "телефон"]:
+        tbot.send_message(message.chat.id, "Введите новый номер телефона:")
+        tbot.register_next_step_handler(message, lambda m: update_customer_field(m, tbot, phone, "phone"))
+    elif choice in ["3", "дата рождения"]:
+        tbot.send_message(message.chat.id, "Введите новую дату рождения (дд.мм.гггг):")
+        tbot.register_next_step_handler(message, lambda m: update_customer_field(m, tbot, phone, "birth_date"))
+    else:
+        tbot.send_message(message.chat.id, "Неверный выбор. Повторите.")
+
+from server.customers import load_customers, save_customers
+
+def update_customer_field(message: types.Message, tbot: TeleBot, old_phone: str, field: str):
+    customers = load_customers()
+
+    if old_phone not in customers:
+        tbot.send_message(message.chat.id, "Клиент не найден.")
+        return
+
+    new_value = message.text.strip()
+
+    if field == "phone":
+        if new_value in customers:
+            tbot.send_message(message.chat.id, "Клиент с таким номером уже существует.")
+            return
+        customers[new_value] = customers.pop(old_phone)
+        from bot.handlers.auth import current_client_phone
+        current_client_phone[message.chat.id] = new_value
+    else:
+        customers[old_phone][field] = new_value
+
+    save_customers(customers)
+    tbot.send_message(message.chat.id, f"✅ Поле '{field}' обновлено.")
+
+
 def register_menu_handlers(tbot: TeleBot):
     @tbot.message_handler(func=lambda msg: msg.text == "Все клиенты")
     def handle_list_customers(message: types.Message):
@@ -92,6 +132,20 @@ def register_menu_handlers(tbot: TeleBot):
         except Exception as e:
             tbot.send_message(chat_id, f"❌ Ошибка: {e}")
 
+    @tbot.message_handler(func=lambda msg: msg.text == "Редактировать клиента")
+    def handle_edit_customer(message: types.Message):
+        chat_id = message.chat.id
+        from bot.handlers.auth import AUTHORIZED_USERS, current_client_phone
+        phone = current_client_phone.get(chat_id)
+
+        if chat_id not in AUTHORIZED_USERS or not phone:
+            tbot.send_message(chat_id, "❗ Сначала выберите клиента.")
+            return
+
+        tbot.send_message(chat_id, "Что вы хотите изменить?\n1. Имя\n2. Телефон\n3. Дата рождения", reply_markup=None)
+        tbot.register_next_step_handler(message, lambda m: process_edit_choice(m, tbot, phone))
+
+
 def show_customer_info(chat_id, bot: TeleBot, phone: str):
     try:
         customer_info = get_customer(phone)
@@ -99,7 +153,7 @@ def show_customer_info(chat_id, bot: TeleBot, phone: str):
         transactions = customer_info["transactions"]
 
         last_ops = "\n".join([
-            f"{'➕' if t['type'] == 'add' else '➖'} {abs(t['amount'])}₽ — {t['timestamp']}"
+            f"{'➕' if t['type'] == 'add' else '➖'} {abs(t['amount'])}₿ — {t['timestamp']}"
             for t in transactions
         ]) or "Нет транзакций"
 
@@ -107,7 +161,7 @@ def show_customer_info(chat_id, bot: TeleBot, phone: str):
             f"👤 <b>{customer['name']}</b>\n"
             f"📞 Телефон: <code>{phone}</code>\n"
             f"🎂 Дата рождения: {customer['birth_date']}\n"
-            f"💰 Баланс: <b>{customer['balance']}₽</b>\n"
+            f"💰 Баланс: <b>{customer['balance']}₿</b>\n"
             f"\n🧾 Последние транзакции:\n{last_ops}"
         )
         bot.send_message(chat_id, msg, parse_mode="HTML")
@@ -123,7 +177,7 @@ def show_short_customer_info(chat_id, bot: TeleBot, phone: str):
         msg = (
             f"👤 Имя: <b>{customer['name']}</b>\n"
             f"🎂 Дата рождения: {customer['birth_date']}\n"
-            f"💰 Баланс: <b>{customer['balance']}₽</b>"
+            f"💰 Баланс: <b>{customer['balance']}₿</b>"
         )
         bot.send_message(chat_id, msg, parse_mode="HTML")
     except Exception as e:
@@ -152,7 +206,7 @@ def register_client_info_handler(tbot: TeleBot):
                 f"👤 <b>{customer['name']}</b>\n"
                 f"📞 Телефон: <code>{phone}</code>\n"
                 f"🎂 Дата рождения: {customer.get('birth_date', '—')}\n"
-                f"💰 Баланс: <b>{customer.get('balance', 0)}₽</b>\n"
+                f"💰 Баланс: <b>{customer.get('balance', 0)}₿</b>\n"
                 f"\n🧾 <b>Транзакции:</b>\n"
             )
 
@@ -161,7 +215,7 @@ def register_client_info_handler(tbot: TeleBot):
             else:
                 for t in transactions:
                     sign = "➕" if t["type"] == "add" else "➖"
-                    msg += f"{sign} {abs(t['amount'])}₽ — {t['timestamp']}\n"
+                    msg += f"{sign} {abs(t['amount'])}₿ — {t['timestamp']}\n"
 
             tbot.send_message(chat_id, msg, parse_mode="HTML")
         except Exception as e:

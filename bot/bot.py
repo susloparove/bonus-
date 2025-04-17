@@ -4,7 +4,7 @@ import json
 import logging
 import os
 from telebot import TeleBot
-from bot.handlers import setup_handlers
+from bot.handlers import setup_all_handlers
 
 # Настройка логирования
 logging.basicConfig(
@@ -37,7 +37,7 @@ setup_handlers(tbot)
 if __name__ == "__main__":
     logger.info("Запуск бота...")
     try:
-        bot.polling(none_stop=True, interval=0, timeout=20)
+        tbot.polling(none_stop=True, interval=0, timeout=20)
     except Exception as e:
         logger.error(f"Ошибка при запуске бота: {e}")
         raise SystemExit("Бот остановлен из-за ошибки.")

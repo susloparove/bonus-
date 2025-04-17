@@ -46,7 +46,7 @@ def register_customer_handlers(tbot: TeleBot):
                 f"Клиент добавлен ✅\n"
                 f"👤 {info['name']}\n"
                 f"📞 {phone}\n"
-                f"💰 Баланс: {info['balance']}₽\n\n"
+                f"💰 Баланс: {info['balance']}₿\n\n"
                 f"✅ Вы работаете с этим клиентом."
             )
         except Exception as e:
@@ -76,7 +76,7 @@ def register_customer_handlers(tbot: TeleBot):
             info = get_customer_info(phone)
             msg = (f"👤 Имя: {info['name']}\n"
                    f"📞 Телефон: {phone}\n"
-                   f"💰 Баланс: {info['balance']}₽")
+                   f"💰 Баланс: {info['balance']}₿")
         except Exception as e:
             msg = f"❌ Ошибка: {e}"
         tbot.send_message(message.chat.id, msg)

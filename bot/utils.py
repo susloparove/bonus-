@@ -30,7 +30,7 @@ def format_customer_info(customer_info: dict, phone: str) -> str:
     if not transactions:
         lines.append("Нет транзакций.")
     else:
-        for t in transactions[-5:]:
+        for t in transactions:
             lines.append(f"{t['timestamp']}: {t['type']} {t['amount']}₿")
 
     return "\n".join(lines)
