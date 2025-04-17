@@ -1,7 +1,8 @@
 from telebot import TeleBot, types
 import logging
-from bot.keyboards import password_keyboard, main_menu_keyboard, seller_menu_keyboard
+from bot.keyboards import password_keyboard, main_menu_keyboard, seller_menu_keyboard, client_menu_keyboard
 from server.users import authenticate_user_by_password, get_user_role
+from server.customers import get_customer
 
 # Глобальные состояния
 AUTHORIZED_USERS = {}
@@ -28,9 +29,34 @@ def show_main_menu(chat_id: int, tbot: TeleBot):
 
 
 def register_auth_handlers(tbot: TeleBot):
+    from fastapi import HTTPException  # добавь вверху
+
     @tbot.message_handler(commands=['start'])
     def handle_start(message: types.Message):
-        handle_login(message)
+        chat_id = message.chat.id
+        args = message.text.split()
+
+        if len(args) == 2:
+            phone = args[1].strip()
+            try:
+                # Проверим, существует ли клиент
+                get_customer(phone)
+
+                # ✅ Авторизуем клиента
+                AUTHORIZED_USERS[chat_id] = phone
+                current_client_phone[chat_id] = phone
+
+                # Показываем клиентское меню
+                tbot.send_message(chat_id, "👋 Добро пожаловать! Вы вошли как клиент.",
+                                  reply_markup=client_menu_keyboard())
+            except HTTPException:
+                tbot.send_message(chat_id, "❌ Клиент с таким номером не найден.")
+            except Exception as e:
+                tbot.send_message(chat_id, f"❌ Ошибка: {e}")
+        else:
+            # Запрашиваем пароль только если пользователь не авторизован
+            if chat_id not in AUTHORIZED_USERS:
+                handle_login(message)
 
     @tbot.message_handler(commands=['login'])
     def handle_login(message: types.Message):
@@ -77,3 +103,7 @@ def register_auth_handlers(tbot: TeleBot):
                 )
         else:
             user_password_input[chat_id] += action
+
+
+
+

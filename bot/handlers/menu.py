@@ -1,6 +1,6 @@
 from telebot import TeleBot, types
 from server.customers import list_customers, get_customer
-from bot.keyboards import numeric_keyboard, password_keyboard, main_menu_keyboard
+from bot.keyboards import numeric_keyboard, password_keyboard, main_menu_keyboard, client_menu_keyboard
 from bot.handlers.auth import AUTHORIZED_USERS, current_client_phone, user_input, current_action, show_main_menu
 
 
@@ -41,7 +41,7 @@ def register_menu_handlers(tbot: TeleBot):
 
         show_customer_info(chat_id, tbot, phone)
 
-    @tbot.message_handler(func=lambda msg: msg.text == "Поделиться с клиентом")
+    @tbot.message_handler(func=lambda msg: msg.text == "Поделиться")
     def handle_share_client_link(message: types.Message):
         chat_id = message.chat.id
         phone = current_client_phone.get(chat_id)
@@ -74,6 +74,23 @@ def register_menu_handlers(tbot: TeleBot):
         tbot.send_message(chat_id, "🚪 Вы вышли из системы.")
         tbot.send_message(chat_id, "Введите пароль для входа:", reply_markup=password_keyboard())
 
+    @tbot.message_handler(func=lambda msg: msg.text == "Информация")
+    def handle_client_info(message: types.Message):
+        chat_id = message.chat.id
+        phone = AUTHORIZED_USERS.get(chat_id)
+
+        if not phone:
+            tbot.send_message(chat_id, "Вы не авторизованы.")
+            return
+
+        from server.customers import get_customer
+        from bot.utils import format_customer_info
+        try:
+            info = get_customer(phone)
+            text = format_customer_info(info, phone)
+            tbot.send_message(chat_id, text)
+        except Exception as e:
+            tbot.send_message(chat_id, f"❌ Ошибка: {e}")
 
 def show_customer_info(chat_id, bot: TeleBot, phone: str):
     try:
@@ -83,7 +100,7 @@ def show_customer_info(chat_id, bot: TeleBot, phone: str):
 
         last_ops = "\n".join([
             f"{'➕' if t['type'] == 'add' else '➖'} {abs(t['amount'])}₽ — {t['timestamp']}"
-            for t in transactions[-5:]
+            for t in transactions
         ]) or "Нет транзакций"
 
         msg = (
@@ -111,3 +128,41 @@ def show_short_customer_info(chat_id, bot: TeleBot, phone: str):
         bot.send_message(chat_id, msg, parse_mode="HTML")
     except Exception as e:
         bot.send_message(chat_id, f"❌ Ошибка: {e}")
+
+from server.customers import get_customer
+from telebot import TeleBot, types
+from bot.handlers.auth import current_client_phone
+
+def register_client_info_handler(tbot: TeleBot):
+    @tbot.message_handler(func=lambda msg: msg.text == "Информация")
+    def handle_client_info(message: types.Message):
+        chat_id = message.chat.id
+        phone = current_client_phone.get(chat_id)
+
+        if not phone:
+            tbot.send_message(chat_id, "⚠️ Клиент не определён.")
+            return
+
+        try:
+            data = get_customer(phone)
+            customer = data["customer"]
+            transactions = data["transactions"]
+
+            msg = (
+                f"👤 <b>{customer['name']}</b>\n"
+                f"📞 Телефон: <code>{phone}</code>\n"
+                f"🎂 Дата рождения: {customer.get('birth_date', '—')}\n"
+                f"💰 Баланс: <b>{customer.get('balance', 0)}₽</b>\n"
+                f"\n🧾 <b>Транзакции:</b>\n"
+            )
+
+            if not transactions:
+                msg += "Нет транзакций."
+            else:
+                for t in transactions:
+                    sign = "➕" if t["type"] == "add" else "➖"
+                    msg += f"{sign} {abs(t['amount'])}₽ — {t['timestamp']}\n"
+
+            tbot.send_message(chat_id, msg, parse_mode="HTML")
+        except Exception as e:
+            tbot.send_message(chat_id, f"❌ Ошибка: {e}")
