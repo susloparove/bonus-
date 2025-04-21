@@ -2,6 +2,7 @@ from telebot import TeleBot, types
 from server.customers import list_customers, get_customer
 from bot.keyboards import numeric_keyboard, password_keyboard, main_menu_keyboard, client_menu_keyboard
 from bot.handlers.auth import AUTHORIZED_USERS, current_client_phone, user_input, current_action, show_main_menu
+from server.logger import log_action
 
 
 def process_edit_choice(message: types.Message, tbot: TeleBot, phone: str):
@@ -39,6 +40,7 @@ def update_customer_field(message: types.Message, tbot: TeleBot, old_phone: str,
         current_client_phone[message.chat.id] = new_value
     else:
         customers[old_phone][field] = new_value
+        log_action(AUTHORIZED_USERS.get(message.chat.id), f"Редактирование поля {field}", old_phone, details=new_value)
 
     save_customers(customers)
     tbot.send_message(message.chat.id, f"✅ Поле '{field}' обновлено.")

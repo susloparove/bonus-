@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from server.utils import update_balance
 import logging
+from server.logger import log_action
 
 # Настройка логирования
 logging.basicConfig(
@@ -81,6 +82,7 @@ def add_bonus(phone, amount, operator):
     """
     response = update_balance(phone, amount, "add", operator)
     add_transaction(phone, "add", amount, operator)
+    log_action(operator, "Пополнение", phone, amount)
     return response
 
 # Списание баланса
@@ -94,4 +96,5 @@ def deduct_bonus(phone, amount, operator):
     """
     response = update_balance(phone, amount, "deduct", operator)
     add_transaction(phone, "deduct", amount, operator)
+    log_action(operator, "Списание", phone, amount)
     return response

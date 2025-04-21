@@ -4,6 +4,7 @@ from datetime import datetime
 from fastapi import HTTPException
 import logging
 from .utils import load_data, save_data
+from server.logger import log_action
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -82,6 +83,7 @@ def get_customer(phone: str):
         raise HTTPException(status_code=404, detail="Клиент не найден.")
 
     transactions = load_transactions_for_customer(phone)
+    log_action(operator, "Добавление клиента", phone)
 
     return {
         "customer": customers[phone],
