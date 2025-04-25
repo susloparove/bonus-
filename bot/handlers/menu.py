@@ -1,10 +1,51 @@
 from telebot import TeleBot, types
-from server.customers import list_customers, get_customer
-from bot.keyboards import numeric_keyboard, password_keyboard, main_menu_keyboard, client_menu_keyboard
-from bot.handlers.auth import AUTHORIZED_USERS, current_client_phone, user_input, current_action, show_main_menu
+from server.customers import list_customers
+from bot.keyboards import numeric_keyboard, password_keyboard
+from bot.handlers.auth import AUTHORIZED_USERS, user_input, current_action
 from server.logger import log_action
+from server.log_viewer import get_action_log
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+def update_customer_field(message: types.Message, tbot: TeleBot, old_phone: str, field: str):
+    customers = load_customers()
+    chat_id = message.chat.id
 
+    if old_phone not in customers:
+        tbot.send_message(chat_id, "Клиент не найден.")
+        return
+
+    new_value = message.text.strip()
+    operator = AUTHORIZED_USERS.get(chat_id)  # <<< берём оператора
+    if not operator:
+        tbot.send_message(chat_id, "❌ Вы не авторизованы.")
+        return
+
+    old_value = customers[old_phone].get(field, "(не указано)")
+
+    if field == "phone":
+        if new_value in customers:
+            tbot.send_message(chat_id, "Клиент с таким номером уже существует.")
+            return
+        customers[new_value] = customers.pop(old_phone)
+        current_client_phone[chat_id] = new_value
+        # Правильно логируем, передаём старое и новое значение
+        log_action(
+            operator,
+            "Редактирование телефона",
+            target=old_phone,
+            details=f"{old_phone} → {new_value}"
+        )
+    else:
+        customers[old_phone][field] = new_value
+        log_action(
+            operator,
+            f"Редактирование поля {field}",
+            target=old_phone,
+            details=f"{old_value} → {new_value}"
+        )
+
+    save_customers(customers)
+    tbot.send_message(chat_id, f"✅ Поле «{field}» обновлено: {old_value} → {new_value}")
 def process_edit_choice(message: types.Message, tbot: TeleBot, phone: str):
     choice = message.text.strip().lower()
 
@@ -22,45 +63,43 @@ def process_edit_choice(message: types.Message, tbot: TeleBot, phone: str):
 
 from server.customers import load_customers, save_customers
 
-def update_customer_field(message: types.Message, tbot: TeleBot, old_phone: str, field: str):
-    customers = load_customers()
+def build_log_keyboard(offset):
+    markup = InlineKeyboardMarkup()
+    markup.add(InlineKeyboardButton("➕ Ещё 10", callback_data=f"morelog_{offset + 10}"))
+    return markup
 
-    if old_phone not in customers:
-        tbot.send_message(message.chat.id, "Клиент не найден.")
+def show_log_page(bot: TeleBot, chat_id: int, offset: int = 0):
+    if AUTHORIZED_USERS.get(chat_id) != "Администратор":
+        bot.send_message(chat_id, "❌ Только администратор может просматривать лог.")
         return
 
-    new_value = message.text.strip()
+    logs = get_action_log(limit=10, offset=offset)
+    if not logs:
+        bot.send_message(chat_id, "📭 Больше записей нет.")
+        return
 
-    if field == "phone":
-        if new_value in customers:
-            tbot.send_message(message.chat.id, "Клиент с таким номером уже существует.")
-            return
-        customers[new_value] = customers.pop(old_phone)
-        from bot.handlers.auth import current_client_phone
-        current_client_phone[message.chat.id] = new_value
-    else:
-        customers[old_phone][field] = new_value
-        log_action(AUTHORIZED_USERS.get(message.chat.id), f"Редактирование поля {field}", old_phone, details=new_value)
-
-    save_customers(customers)
-    tbot.send_message(message.chat.id, f"✅ Поле '{field}' обновлено.")
-
+    text = "📄 <b>Журнал действий:</b>\n"
+    for entry in reversed(logs):
+        old_new = f" ({entry.get('details', '')})" if entry.get("details") else ""
+        text += (
+            f"🕓 {entry['timestamp']}\n"
+            f"👤 {entry['user']} → {entry['action']} {entry.get('amount') or ''}₽ "
+            f"для {entry.get('target') or '—'}{old_new}\n\n"
+        )
+    bot.send_message(chat_id, text.strip(), parse_mode="HTML", reply_markup=build_log_keyboard(offset))
 
 def register_menu_handlers(tbot: TeleBot):
     @tbot.message_handler(func=lambda msg: msg.text == "Все клиенты")
     def handle_list_customers(message: types.Message):
         chat_id = message.chat.id
-
         if chat_id not in AUTHORIZED_USERS:
             tbot.send_message(chat_id, "Вы не авторизованы.", reply_markup=password_keyboard())
             return
-
         try:
             customers = list_customers()
             if not customers["customers"]:
                 tbot.send_message(chat_id, "Список клиентов пуст.")
                 return
-
             result = "\n".join(customers["customers"])
             tbot.send_message(chat_id, f"👥 Все клиенты:\n\n{result}")
         except Exception as e:
@@ -82,6 +121,18 @@ def register_menu_handlers(tbot: TeleBot):
             return
 
         show_customer_info(chat_id, tbot, phone)
+
+    @tbot.callback_query_handler(func=lambda call: call.data.startswith("morelog_"))
+    def handle_more_logs(call: types.CallbackQuery):
+        offset = int(call.data.split("_")[1])
+        show_log_page(tbot, call.message.chat.id, offset)
+
+    @tbot.message_handler(func=lambda msg: msg.text == "📄 Журнал действий")
+    def handle_show_log(message: types.Message):
+        show_log_page(tbot, message.chat.id, offset=0)
+
+    # остальной код меню не изменился...
+
 
     @tbot.message_handler(func=lambda msg: msg.text == "Поделиться")
     def handle_share_client_link(message: types.Message):
@@ -147,13 +198,44 @@ def register_menu_handlers(tbot: TeleBot):
         tbot.send_message(chat_id, "Что вы хотите изменить?\n1. Имя\n2. Телефон\n3. Дата рождения", reply_markup=None)
         tbot.register_next_step_handler(message, lambda m: process_edit_choice(m, tbot, phone))
 
+    from server.log_viewer import get_action_log
+
+    @tbot.message_handler(func=lambda msg: msg.text == "📄 Журнал действий")
+    def handle_show_log(message: types.Message):
+        chat_id = message.chat.id
+        if AUTHORIZED_USERS.get(chat_id) != "Администратор":  # здесь можно добавить проверку роли
+            tbot.send_message(chat_id, "❌ Только администратор может просматривать лог.")
+            return
+
+        try:
+            logs = get_action_log(limit=10)
+            if not logs:
+                tbot.send_message(chat_id, "Журнал пуст.")
+                return
+
+            text = "📄 <b>Последние действия:</b>\n"
+            for entry in reversed(logs):
+                details = entry.get("details", "")
+                amount = f"{entry['amount']}₽" if entry["amount"] is not None else ""
+                line = (
+                    f"🕓 <b>{entry['timestamp']}</b>\n"
+                    f"👤 {entry['user']} → {entry['action']} {amount} для {entry['target'] or '—'}\n"
+                )
+                if details:
+                    line += f"📝 <i>{details}</i>\n"
+                text += line + "\n"
+
+            tbot.send_message(chat_id, text.strip(), parse_mode="HTML")
+
+        except Exception as e:
+            tbot.send_message(chat_id, f"❌ Ошибка при чтении лога: {e}")
+
 
 def show_customer_info(chat_id, bot: TeleBot, phone: str):
     try:
         customer_info = get_customer(phone)
         customer = customer_info["customer"]
         transactions = customer_info["transactions"]
-
         last_ops = "\n".join([
             f"{'➕' if t['type'] == 'add' else '➖'} {abs(t['amount'])}₿ — {t['timestamp']}"
             for t in transactions
@@ -194,7 +276,7 @@ def register_client_info_handler(tbot: TeleBot):
     def handle_client_info(message: types.Message):
         chat_id = message.chat.id
         phone = current_client_phone.get(chat_id)
-
+        operator = AUTHORIZED_USERS.get(chat_id)  # <<< здесь
         if not phone:
             tbot.send_message(chat_id, "⚠️ Клиент не определён.")
             return
@@ -203,7 +285,7 @@ def register_client_info_handler(tbot: TeleBot):
             data = get_customer(phone)
             customer = data["customer"]
             transactions = data["transactions"]
-
+            operator = AUTHORIZED_USERS.get(chat_id)  # <<< здесь
             msg = (
                 f"👤 <b>{customer['name']}</b>\n"
                 f"📞 Телефон: <code>{phone}</code>\n"
@@ -222,3 +304,5 @@ def register_client_info_handler(tbot: TeleBot):
             tbot.send_message(chat_id, msg, parse_mode="HTML")
         except Exception as e:
             tbot.send_message(chat_id, f"❌ Ошибка: {e}")
+
+

@@ -10,10 +10,10 @@ LOG_FILE = os.path.join(LOG_DIR, "actions.json")
 
 os.makedirs(LOG_DIR, exist_ok=True)
 
-def log_action(user: str, action: str, target: str = "", amount: float = None, details: str = ""):
+def log_action(operator: str, action: str, target: str = "", amount: float = None, details: str = ""):
     entry = {
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "user": user,
+        "user": operator,
         "action": action,
         "target": target,
         "amount": amount,

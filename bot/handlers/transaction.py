@@ -1,6 +1,6 @@
 from telebot import TeleBot, types
 from server.transactions import add_bonus, deduct_bonus
-from server.customers import get_customer_info
+from server.customers import get_customer
 from bot.keyboards import numeric_keyboard, main_menu_keyboard
 from bot.utils import validate_phone
 from bot.handlers.auth import AUTHORIZED_USERS, user_input, current_client_phone, current_action
@@ -85,32 +85,34 @@ def register_transaction_handlers(tbot: TeleBot):
 
 
 def process_amount(message: types.Message, tbot: TeleBot, phone: str):
+    chat_id = message.chat.id
+    operator = AUTHORIZED_USERS.get(chat_id)  # <<< здесь
+    if not operator:
+        tbot.send_message(chat_id, "❌ Вы не авторизованы.")
+        return
+
     try:
         amount = float(message.text.replace(",", "."))
-        operator = AUTHORIZED_USERS.get(message.chat.id)
-        if not operator:
-            tbot.send_message(message.chat.id, "Вы не авторизованы.")
-            return
-
-        operation = current_action.get(message.chat.id)
-        if operation == "deduct":
-            deduct_bonus(phone, amount, operator)
-            success_msg = f"💸 Списано {amount}₿ с клиента {phone}."
-        elif operation == "add":
+        operation = current_action.get(chat_id)
+        operator = AUTHORIZED_USERS.get(chat_id)  # <<< здесь
+        if operation == "add":
             add_bonus(phone, amount, operator)
-            success_msg = f"💰 Зачислено {amount}₿ клиенту {phone}."
+            tbot.send_message(chat_id, f"💰 Зачислено {amount}₽ клиенту {phone}.")
+        elif operation == "deduct":
+            deduct_bonus(phone, amount, operator)
+            tbot.send_message(chat_id, f"💸 Списано {amount}₽ с клиента {phone}.")
         else:
-            tbot.send_message(message.chat.id, "❌ Неизвестная операция.")
+            tbot.send_message(chat_id, "❌ Неизвестная операция.")
             return
 
-        customer = get_customer_info(phone)
-        tbot.send_message(
-            message.chat.id,
-            success_msg + "\n\n" +
-            f"👤 Имя: {customer['name']}\n"
-            f"📞 Телефон: {phone}\n"
-            f"💰 Новый баланс: {customer['balance']}₿"
-        )
+        # после операции можно показать обновлённый баланс
+        info = get_customer(phone)["customer"]
+        tbot.send_message(chat_id, f"📊 Новый баланс: {info['balance']}₽")
+    except Exception as e:
+        tbot.send_message(chat_id, f"❌ Ошибка при операции: {e}")
+
+        # ✅ Удаляем текущую операцию
+        # current_action.pop(message.chat.id, None)
 
     except Exception as e:
         tbot.send_message(message.chat.id, f"❌ Ошибка при операции: {e}")
